@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+	<title>Newsletter - Formulaire d'envoi</title>
+	<meta name="author" content="Mehdi Chibouni">
+	<link rel="shortcut icon" href="http://static02.hongkiat.com/logo/hkdc/favicon.ico">
+	<link rel="icon" href="http://static02.hongkiat.com/logo/hkdc/favicon.ico">
+	<link rel="stylesheet" type="text/css" media="all" href="style.css">
+	<link rel="stylesheet" type="text/css" media="all" href="responsive.css">
+	<link rel="stylesheet" type="text/css" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.js"></script>
+	<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+
+		var imageLinksContainer = [];
+
+		function share(dataURL,index){
+
+			var encodedURL = dataURL.replace(/.*,/, '');
+			$.ajax({
+				url: 'https://api.imgur.com/3/image',
+				type: 'POST',
+				headers: {
+					Accept: 'application/json',
+					Authorization: 'Client-ID b12af670985f5a4'
+				},
+				data: {
+					type: 'base64',
+					image: encodedURL
+				},
+				dataType: 'json'
+			}).success(function(resp) {
+				imageLinksContainer[index] = resp.data.link;
+			}).error(function() {
+				console.log("err");
+			})
+		}
+
+
+		$(function(){
+
+
+			$(".file-trigger").on('change',function(){
+
+				var currentIndex = $('#tab-holder li.active').find('a').data('id');
+
+				var oFReader = new FileReader();
+				oFReader.readAsDataURL(document.querySelectorAll('.file-trigger')[currentIndex-1].files[0]);
+
+				oFReader.onload = function (oFREvent) {
+					share(oFREvent.target.result,currentIndex-1);
+					$(".nl-image-preview").eq(currentIndex-1).attr('src',oFREvent.target.result);
+					$('.nl-image-preview').eq(currentIndex-1).hide().fadeIn().css('display','block');
+				};
+			});
+
+
+			$('#add-article').click(function(){
+				var toShow = $('#tab-holder li').not(':hidden').length;
+				$('#tab-holder li').eq(toShow).removeClass('hidden').hide().fadeIn();
+			})
+
+			$('.nav.nav-tabs').css('margin-bottom','20px');
+
+			$('#tab-holder a').click(function (e) {
+				if($(this).parent('li').hasClass('active')){
+					$( $(this).attr('href') ).hide();
+				}
+				else {
+					e.preventDefault();
+					$(this).tab('show');
+				}
+			});
+
+			$('form').submit(function(e){
+				e.preventDefault();
+
+				var payloadContainer = [];
+
+				var articleCount = $('#tab-holder li').not(':hidden').length;
+
+				for (var ctr = 0 ; ctr < articleCount ; ctr ++){
+					var payload = {};
+					payload.imgURL = imageLinksContainer[ctr];
+					payload.article = $('.nl-title').eq(ctr).val();
+					payload.link = $('.nl-url').eq(ctr).val();
+					payload.title = $('.nl-title').eq(ctr).val();
+
+					payloadContainer.push(payload);
+				}
+
+				console.warn(payloadContainer);
+
+				$.post("http://localhost:3000/send_mail",{ payload: payloadContainer },function(data){
+					console.log('mail send');
+					console.log('payload :');
+					console.log(JSON.stringify(data));
+				});
+			})
+		})
+
+
+</script>
+<style type="text/css" rel="stylesheet">
+	.nl-image-preview {
+		width: 300px;
+		height: 300px;
+		margin: auto;
+		display: none;
+		margin-top: 15px;
+		margin-bottom: 15px;
+		box-shadow: 1px 1px 3px 1px;
+		border-radius: 5px;
+	}
+	.hidden {
+		display: none;
+	}
+</style>
+</head>
+
+<body>
+
+	<section id="container">
+		<h2>Newsletter - Formulaire d'envoi</h2>
+
+
+		<ul id="tab-holder" class="nav nav-tabs">
+			<li class="active"><a href="#art-1" data-id="1" data-toggle="tab">Article #1</a></li>
+			<li class="hidden"><a href="#art-2" data-id="2" data-toggle="tab">Article #2</a></li>
+			<li class="hidden"><a href="#art-3" data-id="3" data-toggle="tab">Article #3</a></li>
+			<li class="hidden"><a href="#art-4" data-id="4" data-toggle="tab">Article #4</a></li>
+			<li class="hidden"><a href="#art-5" data-id="5" data-toggle="tab">Article #5</a></li>
+			<li class="hidden"><a href="#art-6" data-id="6" data-toggle="tab">Article #6</a></li>
+			<button id="add-article" class="btn btn-success" style="float:right;">Ajouter un article</button>
+		</ul>
+
+		<!-- Tab panes -->
+		<div class="tab-content">
+			<div class="tab-pane fade in active" id="art-1">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input class="file-trigger" type="file" name="image"  placeholder="Couverture de l'article" tabindex="4" class="txtinput">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+				
+			</div>
+			<div class="tab-pane fade" id="art-2">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input type="file" name="image" placeholder="Couverture de l'article" tabindex="4" class="txtinput file-trigger">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+
+			</div>
+			<div class="tab-pane fade" id="art-3">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input   type="file" name="image" placeholder="Couverture de l'article" tabindex="4" class="txtinput file-trigger">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+
+			</div>
+			<div class="tab-pane fade" id="art-4">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input   type="file" name="image" placeholder="Couverture de l'article" tabindex="4" class="txtinput file-trigger">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+
+			</div>
+			<div class="tab-pane fade" id="art-5">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input   type="file" name="image" placeholder="Couverture de l'article" tabindex="4" class="txtinput file-trigger">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+
+			</div>
+			<div class="tab-pane fade" id="art-6">
+				<form name="hongkiat" id="hongkiat-form" method="post">
+					<div id="wrapping" class="clearfix">
+						<section id="aligned">
+							<input type="text" name="name" id="name" placeholder="Publié par.. (traçabilité)" autocomplete="off" tabindex="1" class="txtinput">
+
+							<input type="text" name="email" id="email" placeholder="Titre de l'article" autocomplete="off" tabindex="2" class="txtinput nl-title">
+
+							<input type="url" name="link" id="website" placeholder="URL de l'article" autocomplete="off" tabindex="3" class="txtinput nl-url">
+
+							<label>Couverture de l'article</label>
+
+							<input   type="file" name="image" placeholder="Couverture de l'article" tabindex="4" class="txtinput file-trigger">
+
+							<img style="display:none;" class="nl-image-preview" />
+
+							<textarea name="message" id="message" placeholder="Corps de l'article" tabindex="5" class="txtblock"></textarea>
+						</section>
+
+						<section id="aside" class="clearfix">
+							<section id="recipientcase">
+								<h3>Destinataire(s): (à spécifier par le client)</h3>
+								<select id="recipient" name="recipient" tabindex="6" class="selmenu">
+									<option value="cat">Catégorie #1</option>
+									<option value="cat">Catégorie #2</option>
+									<option value="cat">Catégorie #3</option>
+									<option value="cat">Catégorie #4</option>
+								</select>
+							</section>
+
+							<section id="prioritycase">
+								<h3>Priorité:</h3>
+								<span class="radiobadge">
+									<input type="radio" id="low" name="priority" value="Basse">
+									<label for="low">Basse</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="med" name="priority" value="Moyenne" checked="checked">
+									<label for="med">Moyenne</label>
+								</span>
+
+								<span class="radiobadge">
+									<input type="radio" id="high" name="priority" value="Haute">
+									<label for="high">Haute</label>
+								</span>
+							</section>
+						</section>
+					</div>
+
+
+					<section id="buttons">
+						<input type="reset" name="reset" id="resetbtn" class="resetbtn" value="Remettre à Zéro">
+						<input type="submit" name="submit" id="submitbtn" class="submitbtn" tabindex="7" value="Envoyer tous les articles">
+						<br style="clear:both;">
+					</section>
+				</form>
+
+
+			</div>															
+
+		</div>
+	</section>
+
+</body>
+</html>
