@@ -63,9 +63,7 @@ var getAllRecipients = function() {
 var newsLetterHandler = function() {
 	return function(req, res, next) {
 		getAllRecipients()(req, res, next).then(function(resp) {
-			resp.forEach(function(mailAddr) {
-				sendMail(mailAddr)(req, res, next);
-			})
+				sendMail(resp)(req, res, next);
 		});
 	}
 }
@@ -145,24 +143,27 @@ var sendMail = function(resp) {
 		});
 
 		// setup e-mail data with unicode symbols
-		var mailOptions = {
-			from: "NewsLetter ✔ <node-newsletter@gmail.com>", // sender address
-			to: resp, // list of receivers
-			subject: "NewsLetter", // Subject line
-			text: mailGlobalString, // plaintext body
-			html: mailGlobalString // html body
-		};
 
-		// send mail with defined transport object
-		smtpTransport.sendMail(mailOptions, function(error, response) {
-			if (error) {
-				console.log(error);
-			} else {
-				console.log("Message sent: " + response.message);
-			}
-			// if you don't want to use this transport object anymore, uncomment following line
-			//smtpTransport.close(); // shut down the connection pool, no more messages
-		});
+		resp.forEach(function(mailAddr){
+			var mailOptions = {
+				from: "NewsLetter ✔ <no-reply@ltc.org.tn>", // sender address
+				to: mailAddr, // list of receivers
+				subject: "NewsLetter", // Subject line
+				text: mailGlobalString, // plaintext body
+				html: mailGlobalString // html body
+			};
+
+			// send mail with defined transport object
+			smtpTransport.sendMail(mailOptions, function(error, response) {
+				if (error) {
+					console.log(error);
+				} else {
+					console.log("Message sent: " + response.message);
+				}
+				// if you don't want to use this transport object anymore, uncomment following line
+				//smtpTransport.close(); // shut down the connection pool, no more messages
+			});
+		})
 	}
 }
 
